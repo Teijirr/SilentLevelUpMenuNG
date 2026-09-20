@@ -1,3 +1,7 @@
+#include <SimpleIni.h>
+
+int g_StatsToAdd = 0;
+
 class LevelUpMenuCloser final : public RE::BSTEventSink<RE::MenuOpenCloseEvent> {
 public:
 	static LevelUpMenuCloser* GetSingleton() {
@@ -90,6 +94,17 @@ public:
 							if (avOwner) {
 								avOwner->SetBaseActorValue(RE::ActorValue::kMagicka, magickaBefore);
 							}
+
+							// Add stats
+							if (g_StatsToAdd > 0) {
+								int magickaAfterAdd = static_cast<int>(avOwner->GetBaseActorValue(RE::ActorValue::kMagicka)) + g_StatsToAdd;
+								int healthAfterAdd = static_cast<int>(avOwner->GetBaseActorValue(RE::ActorValue::kHealth)) + g_StatsToAdd;
+								int staminaAfterAdd = static_cast<int>(avOwner->GetBaseActorValue(RE::ActorValue::kStamina)) + g_StatsToAdd;
+
+								avOwner->SetBaseActorValue(RE::ActorValue::kMagicka, magickaAfterAdd);
+								avOwner->SetBaseActorValue(RE::ActorValue::kHealth, healthAfterAdd);
+								avOwner->SetBaseActorValue(RE::ActorValue::kStamina, staminaAfterAdd);
+							}
 						});
 					}
 				}
@@ -130,8 +145,21 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg) {
 	}
 }
 
+void LoadSettings()
+{
+	CSimpleIniA ini;
+	ini.SetUnicode();
+
+	const auto* plugin = SKSE::PluginDeclaration::GetSingleton();
+	const std::string path = std::string("Data/SKSE/Plugins/") + std::string(plugin->GetName()) + "/Settings.ini";
+	ini.LoadFile(path.c_str());
+
+	g_StatsToAdd = static_cast<int>(ini.GetLongValue("General", "iStatsToAdd", 0));
+}
+
 SKSEPluginLoad(const SKSE::LoadInterface* skse) {
 	SKSE::Init(skse);
+	LoadSettings();
 
 	auto messaging = SKSE::GetMessagingInterface();
 	if (!messaging->RegisterListener("SKSE", MessageHandler)) {
